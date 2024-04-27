@@ -1,0 +1,77 @@
+version: "3.9"
+
+services:
+  postgresql:
+    ports:
+      - "5432:5432"
+    image: postgres:14.1-alpine
+    environment:
+      POSTGRES_PASSWORD: pass
+    volumes:
+      - project_db:/var/lib/postgresql/data
+
+
+
+  redis:
+    image: redis:6.2-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
+
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: init
+    image: project-api:local
+    working_dir: /app
+    environment:
+      NODE_CONFIG_ENV: compose
+      NODE_DB: 'postgres://postgres:pass@postgresql:5432/project'
+      NODE_PORT: '3001'
+      NODE_JWT_SECRET: 'TODO: Generate secret'
+      NODE_REDIS_HOST: redis
+    volumes:
+      - ./src:/app/src
+      - ./data:/app/data
+      - ./config:/app/config
+    depends_on:
+      - postgresql
+      - redis
+    ports:
+      - "8090:3001"
+    command: bash -c "npm --version && echo package.json && npm run watch"
+
+  queue_app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: init
+    image: bhi-queue:local
+    working_dir: /app
+    environment:
+      NODE_CONFIG_ENV: compose
+      NODE_DB: 'postgres://postgres:pass@postgresql:5432/project'
+      NODE_PORT: '3002'
+      NODE_JWT_SECRET: 'TODO: Generate secret'
+    volumes:
+      - ./src:/app/src
+      - ./data:/app/data
+      - ./config:/app/config
+    depends_on:
+      - postgresql
+      - redis
+    ports:
+      - "8091:3002"
+    command: bash -c "npm --version && echo package.json && npm run queue:debug"
+
+
+volumes:
+  project_db:
+  redis_data:
+
+
+

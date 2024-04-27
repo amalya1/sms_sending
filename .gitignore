@@ -1,0 +1,8 @@
+.idea
+*.iml
+dist
+node_modules
+profiling
+.assets
+config/local*.yaml
+.env
